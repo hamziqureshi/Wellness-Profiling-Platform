@@ -1,0 +1,52 @@
+version: '3.8' 
+ 
+services: 
+  chatbot-apis: 
+    build: ./app
+    env_file:
+      - ./.env
+    environment: 
+      - OPENAI_API_KEY=${OPENAI_API_KEY} 
+      - FAST_API_PORT=${FAST_API_PORT} 
+      - HOST=${HOST} 
+      - WORKERS=${WORKERS}
+    volumes: 
+      - ./app:/app 
+    ports: 
+      - "${FAST_API_PORT}:${FAST_API_PORT}"
+    networks: 
+      - app-network 
+    restart: unless-stopped
+ 
+  chainlit-interface:
+    build: ./chainlit_app
+    env_file:
+      - ./.env
+    environment:
+      - CHAINLIT_PORT=${CHAINLIT_PORT}
+    volumes:
+      - ./chainlit_app:/app
+    ports:
+      - "${CHAINLIT_PORT}:${CHAINLIT_PORT}"
+    networks:
+      - app-network
+    restart: unless-stopped
+    depends_on:
+      - chatbot-apis
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "80:80"
+    depends_on:
+      - chatbot-apis
+    networks:
+      - app-network
+    restart: unless-stopped
+ 
+networks: 
+  app-network: 
+    driver: bridge
